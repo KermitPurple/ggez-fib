@@ -22,13 +22,15 @@ use ggez::{
 type Point = coord::Coord;
 
 struct Game {
-    conf: GameConf
+    conf: GameConf,
+    style: Style,
 }
 
 impl Game {
-    fn new(_ctx: &mut Context, conf: GameConf) -> Self {
+    fn new(_ctx: &mut Context, conf: GameConf, style: Style) -> Self {
         Self {
             conf,
+            style,
         }
     }
 
@@ -86,17 +88,17 @@ impl Game {
             mb.rectangle(
                 DrawMode::fill(),
                 square,
-                Color::from_rgb(100, 200, 100),
+                self.style.get_color(i),
                 )?
                 .rectangle(
                     DrawMode::stroke(5.),
                     square,
-                    Color::from_rgb(100, 100, 100),
+                    self.style.line_color,
                 )?
                 .line(
                     &self.get_curve_points(points, 100)[..],
                     5.,
-                    Color::from_rgb(100, 100, 100),
+                    self.style.line_color,
                 )?;
 
             prev += curr;
@@ -134,6 +136,30 @@ impl GameConf {
     }
 }
 
+#[derive(Clone)]
+struct Style {
+    line_color: Color,
+    main_colors: Vec<Color>,
+}
+
+impl Style {
+    fn get_color(&self, index: usize) -> Color {
+        self.main_colors[index % self.main_colors.len()]
+    }
+}
+
+impl Default for Style {
+    fn default() -> Self {
+        Self {
+            line_color: Color::from_rgb_u32(0x555555),
+            main_colors: vec![
+                Color::from_rgb_u32(0xB00B69),
+                Color::from_rgb_u32(0x042069),
+            ],
+        }
+    }
+}
+
 fn main() -> GameResult{
     let conf = GameConf::new(Point::new(2400., 1800.));
     let (mut ctx, event_loop) = ContextBuilder::new("Fibonacci Spiral", "KermitPurple")
@@ -147,7 +173,7 @@ fn main() -> GameResult{
             ..Default::default()
         })
         .build()?;
-    let game = Game::new(&mut ctx, conf);
+    let game = Game::new(&mut ctx, conf, Default::default());
     graphics::set_window_position(&ctx, Point::new(20., 20.))?;
     event::run(ctx, event_loop, game)
 }
