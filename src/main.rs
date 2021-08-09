@@ -9,9 +9,6 @@ use ggez::{
     event::{self, EventHandler},
     graphics::{
         self,
-        mint,
-        Font,
-        Text,
         Rect,
         Color,
         DrawMode,
@@ -24,6 +21,7 @@ type Point = coord::Coord;
 struct Game {
     conf: GameConf,
     style: Style,
+    starting_size: f32,
 }
 
 impl Game {
@@ -31,6 +29,7 @@ impl Game {
         Self {
             conf,
             style,
+            starting_size: 0.01,
         }
     }
 
@@ -44,10 +43,10 @@ impl Game {
     }
 
     fn draw_fib(&mut self, ctx: &mut Context) -> GameResult {
-        let (mut prev, mut curr) = (0., 1.);
+        let (mut prev, mut curr) = (0., self.starting_size);
         let mut mb = graphics::MeshBuilder::new();
         let mut pos = Point::new(0., 0.);
-        for i in 0..20 {
+        for i in 0..30 {
             let square = Rect::new(pos.x, pos.y , curr, curr);
             let (dpos, points) = match i % 4 {
                 0 => (
@@ -111,6 +110,10 @@ impl Game {
 
 impl EventHandler<GameError> for Game {
     fn update(&mut self, _ctx: &mut Context) -> GameResult {
+        self.starting_size *= 1.05;
+        if self.starting_size >= 3.3229712 {
+            self.starting_size = 0.01;
+        }
         Ok(())
     }
 
@@ -155,6 +158,8 @@ impl Default for Style {
             main_colors: vec![
                 Color::from_rgb_u32(0xB00B69),
                 Color::from_rgb_u32(0x042069),
+                Color::from_rgb_u32(0xB4DA55),
+                // Color::from_rgb_u32(0x069420),
             ],
         }
     }
