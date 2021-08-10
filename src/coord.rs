@@ -2,7 +2,7 @@ use std::ops::*;
 type Point = ggez::graphics::mint::Point2<f32>;
 use winit::dpi::{Position, PhysicalPosition};
 
-#[derive(Copy, Clone, PartialEq, Debug)]
+#[derive(Copy, Clone, PartialEq, Debug, Default)]
 pub struct Coord {
     pub x: f32,
     pub y: f32,
@@ -124,5 +124,10 @@ mod tests {
         assert_eq!(Coord::new(4., 2.), (4., 2.).into());
         assert_eq!(Coord::new(7., -2.), [7., -2.].into());
         assert_eq!(Coord::new(7., -2.) + [1., 5.], Coord::new(8., 3.));
+    }
+
+    #[test]
+    fn test_default() {
+        assert_eq!(Coord::new(0., 0.), Default::default());
     }
 }
