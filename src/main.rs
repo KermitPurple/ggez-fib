@@ -7,6 +7,11 @@ use ggez::{
     GameError,
     conf::{WindowSetup, WindowMode},
     event::{self, EventHandler},
+    input::keyboard::{
+        self,
+        KeyCode,
+        KeyMods,
+    },
     graphics::{
         self,
         Rect,
@@ -18,10 +23,33 @@ use ggez::{
 
 type Point = coord::Coord;
 
+const GOLDEN_RATIO: f32 = 1.61803398875;
+const INV_GOLDEN_RATIO: f32 = 1. / GOLDEN_RATIO;
+const HALF_PI: f32 = PI / 2.;
+const PI: f32 = 3.14159265;
+const TWO_PI: f32 = 2. * PI;
+
+enum State {
+    Zooming,
+    Rotating,
+}
+
+impl State {
+    fn swap(&mut self) {
+        *self = match self {
+            State::Zooming => State::Rotating,
+            State::Rotating => State::Zooming,
+        }
+    }
+}
+
 struct Game {
     conf: GameConf,
     style: Style,
     starting_size: f32,
+    delta_theta: f32,
+    state: State,
+    paused: bool,
 }
 
 impl Game {
@@ -30,6 +58,9 @@ impl Game {
             conf,
             style,
             starting_size: 0.01,
+            delta_theta: 0.,
+            state: State::Zooming,
+            paused: false,
         }
     }
 
@@ -42,7 +73,7 @@ impl Game {
         res
     }
 
-    fn draw_fib(&mut self, ctx: &mut Context) -> GameResult {
+    fn draw_zooming(&mut self, ctx: &mut Context) -> GameResult {
         let (mut prev, mut curr) = (0., self.starting_size);
         let mut mb = graphics::MeshBuilder::new();
         let mut pos = Point::new(0., 0.);
@@ -90,37 +121,95 @@ impl Game {
                 self.style.get_color(i),
                 )?
                 .rectangle(
-                    DrawMode::stroke(5.),
+                    DrawMode::stroke(self.style.line_width),
                     square,
                     self.style.line_color,
                 )?
                 .line(
                     &self.get_curve_points(points, 100)[..],
-                    5.,
+                    self.style.line_width,
                     self.style.line_color,
                 )?;
-
             prev += curr;
             std::mem::swap(&mut prev, &mut curr);
         }
         let mesh = mb.build(ctx)?;
         graphics::draw(ctx, &mesh, DrawParam::new().dest(self.conf.window_center))
     }
+
+    fn draw_rotating(&mut self, ctx: &mut Context) -> GameResult {
+        let mut pos = Point::default();
+        let mut rect = Rect::new(0., 0., 1000., 1000.);
+        let mut theta = 0.;
+        for i in 0..20{
+            let param = DrawParam::default().dest(pos).rotation(theta);
+            let mesh = graphics::Mesh::new_rectangle(
+                ctx,
+                DrawMode::fill(),
+                rect,
+                self.style.get_color(i),
+            )?;
+            graphics::draw(ctx, &mesh, param)?;
+            let mesh = graphics::Mesh::new_rectangle(
+                ctx,
+                DrawMode::stroke(self.style.line_width),
+                rect,
+                self.style.line_color,
+            )?;
+            graphics::draw(ctx, &mesh, param)?;
+            // add the rotation matrix multiplied by the size vector
+            pos += (rect.w * theta.cos() - rect.h * theta.sin(), rect.w * theta.sin() + rect.h * theta.cos());
+            rect.scale(INV_GOLDEN_RATIO, INV_GOLDEN_RATIO);
+            theta += self.delta_theta;
+        }
+        Ok(())
+    }
+
+    fn toggle_pause(&mut self) {
+        self.paused = !self.paused;
+    }
 }
 
 impl EventHandler<GameError> for Game {
     fn update(&mut self, _ctx: &mut Context) -> GameResult {
-        self.starting_size *= 1.05;
-        if self.starting_size >= 3.3229712 {
-            self.starting_size = 0.01;
+        if self.paused {
+            return Ok(());
+        }
+        match self.state {
+            State::Zooming => {
+                self.starting_size *= 1.05;
+                if self.starting_size >= 3.3229712 {
+                    self.starting_size = 0.01;
+                }
+            },
+            State::Rotating => {
+                self.delta_theta += 0.01;
+                if self.delta_theta >= TWO_PI {
+                    self.delta_theta = 0.;
+                }
+            },
         }
         Ok(())
     }
 
     fn draw(&mut self, ctx: &mut Context) -> GameResult {
         graphics::clear(ctx, Color::BLACK);
-        self.draw_fib(ctx)?;
+        match self.state {
+            State::Zooming => self.draw_zooming(ctx)?,
+            State::Rotating => self.draw_rotating(ctx)?,
+        }
         graphics::present(ctx)
+    }
+
+    fn key_down_event(&mut self, ctx: &mut Context, keycode: KeyCode, _keymods: KeyMods, _repeat: bool) {
+        match keycode {
+            KeyCode::Escape |
+            KeyCode::Q => event::quit(ctx),
+            KeyCode::Space |
+            KeyCode::S => self.state.swap(),
+            KeyCode::P => self.toggle_pause(),
+            _ => (),
+        }
     }
 }
 
@@ -141,6 +230,7 @@ impl GameConf {
 
 #[derive(Clone)]
 struct Style {
+    line_width: f32,
     line_color: Color,
     main_colors: Vec<Color>,
 }
@@ -154,12 +244,13 @@ impl Style {
 impl Default for Style {
     fn default() -> Self {
         Self {
+            line_width: 5.,
             line_color: Color::from_rgb_u32(0x555555),
             main_colors: vec![
                 Color::from_rgb_u32(0xB00B69),
                 Color::from_rgb_u32(0x042069),
                 Color::from_rgb_u32(0xB4DA55),
-                // Color::from_rgb_u32(0x069420),
+                Color::from_rgb_u32(0x069420),
             ],
         }
     }
