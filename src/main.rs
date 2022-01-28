@@ -22,10 +22,9 @@ use ggez::{
 
 type Point = coord::Coord;
 
-const GOLDEN_RATIO: f32 = 1.61803398875;
+const GOLDEN_RATIO: f32 = 1.618_034;
 const INV_GOLDEN_RATIO: f32 = 1. / GOLDEN_RATIO;
-const PI: f32 = 3.14159265;
-const TWO_PI: f32 = 2. * PI;
+const TWO_PI: f32 = 2. * std::f32::consts::PI;
 
 enum State {
     Zooming,
@@ -176,7 +175,7 @@ impl EventHandler<GameError> for Game {
         match self.state {
             State::Zooming => {
                 self.starting_size *= 1.05;
-                if self.starting_size >= 3.3229712 {
+                if self.starting_size >= 3.322_971 {
                     self.starting_size = 0.01;
                 }
             },
