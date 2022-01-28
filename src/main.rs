@@ -8,7 +8,6 @@ use ggez::{
     conf::{WindowSetup, WindowMode},
     event::{self, EventHandler},
     input::keyboard::{
-        self,
         KeyCode,
         KeyMods,
     },
@@ -25,7 +24,6 @@ type Point = coord::Coord;
 
 const GOLDEN_RATIO: f32 = 1.61803398875;
 const INV_GOLDEN_RATIO: f32 = 1. / GOLDEN_RATIO;
-const HALF_PI: f32 = PI / 2.;
 const PI: f32 = 3.14159265;
 const TWO_PI: f32 = 2. * PI;
 
